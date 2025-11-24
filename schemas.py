@@ -1,8 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 from datetime import datetime
 from models import BusinessType
-
 
 class MessageCreate(BaseModel):
     name: str
@@ -11,10 +10,9 @@ class MessageCreate(BaseModel):
     business_type: BusinessType
     message: Optional[str] = None
 
-
 class MessageRead(MessageCreate):
     id: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    # Pydantic V2 için yeni config yapısı
+    model_config = ConfigDict(from_attributes=True)
