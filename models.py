@@ -17,6 +17,7 @@ class Message(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False)
     email = Column(String(200), nullable=False, index=True)
+    phone_number = Column(String(50), nullable=True)
     company = Column(String(200), nullable=True)
     business_type = Column(SAEnum(BusinessType), nullable=False)
     message = Column(Text, nullable=True)

@@ -38,6 +38,7 @@ def create_message(message: schemas.MessageCreate, db: Session = Depends(get_db)
         company=message.company,
         business_type=message.business_type,
         message=message.message,
+        phone_number=message.phone_number,
     )
     db.add(db_obj)
     db.commit()

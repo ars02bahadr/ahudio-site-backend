@@ -9,6 +9,7 @@ class MessageCreate(BaseModel):
     company: Optional[str] = None
     business_type: BusinessType
     message: Optional[str] = None
+    phone_number: Optional[str] = None
 
 class MessageRead(MessageCreate):
     id: int
