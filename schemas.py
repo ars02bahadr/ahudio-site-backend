@@ -29,3 +29,11 @@ class MessageList(BaseModel):
     has_previous_page: Optional[bool] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class LoginSuperAdmin(BaseModel):
+    username: str
+    access_token: str
+    token_type: str = "bearer"
+    model_config = ConfigDict(from_attributes=True)
+
+

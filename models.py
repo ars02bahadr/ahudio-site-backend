@@ -22,3 +22,11 @@ class Message(Base):
     business_type = Column(SAEnum(BusinessType), nullable=False)
     message = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SuperAdmin(Base):
+    __tablename__ = "super_admins"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(200), nullable=False)

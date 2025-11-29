@@ -1,15 +1,13 @@
-import asyncio
-import sys
-
-# PythonAnywhere üzerinde çakışmayı önlemek için standart asyncio politikasını zorla
-if sys.platform != "win32":
-    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+from datetime import  timedelta
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models, schemas
 from database import engine, Base, get_db
+from decode import ACCESS_TOKEN_EXPIRE_MINUTES, verify_password, get_password_hash, create_access_token, verify_token
+import uvicorn
+
 
 app = FastAPI(title="Basit Tek-Request Form API")
 
@@ -47,7 +45,13 @@ def create_message(message: schemas.MessageCreate, db: Session = Depends(get_db)
 
 
 @app.get("/messages/", response_model=schemas.MessageList)
-def get_messages(page_number: int = 1,page_size: int = 10, db: Session = Depends(get_db)):
+def get_messages(
+    page_number: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(verify_token)
+):
+    # Token doğrulandı, kullanıcı: current_user
     messages = db.query(models.Message).offset((page_number - 1) * page_size).limit(page_size).all()
     messageList = schemas.MessageList(
         items=messages,
@@ -59,3 +63,54 @@ def get_messages(page_number: int = 1,page_size: int = 10, db: Session = Depends
         has_previous_page=(page_number > 1)
     )
     return messageList
+
+
+@app.post("/login/", response_model=schemas.LoginSuperAdmin)
+def login_super_admin(username: str, password: str, db: Session = Depends(get_db)):
+    admin = db.query(models.SuperAdmin).filter(models.SuperAdmin.username == username).first()
+    
+    # İlk admin kullanıcısı yoksa oluştur
+    if not admin and username == "admin":
+        hashed_password = get_password_hash(password)
+        createNewAdmin = models.SuperAdmin(
+            username=username,
+            password_hash=hashed_password
+        )
+        db.add(createNewAdmin)
+        db.commit()
+        db.refresh(createNewAdmin)
+        
+        # JWT token oluştur
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": username}, expires_delta=access_token_expires
+        )
+        return schemas.LoginSuperAdmin(
+            username=username, 
+            access_token=access_token,
+            token_type="bearer"
+        )
+    
+    # Kullanıcı bulunamadıysa
+    if not admin:
+        raise HTTPException(status_code=401, detail="Kullanici adi veya sifre hatali")
+    
+    # Şifre kontrolü
+    if not verify_password(password, admin.password_hash):
+        raise HTTPException(status_code=401, detail="Kullanici adi veya sifre hatali")
+    
+    # JWT token oluştur
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": username}, expires_delta=access_token_expires
+    )
+    
+    return schemas.LoginSuperAdmin(
+        username=username,
+        access_token=access_token,
+        token_type="bearer"
+    )
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
