@@ -17,3 +17,15 @@ class MessageRead(MessageCreate):
 
     # Pydantic V2 için yeni config yapısı
     model_config = ConfigDict(from_attributes=True)
+
+
+class MessageList(BaseModel):
+    items: list[MessageRead]
+    page_number: int
+    page_size: int
+    total_count: Optional[int] = None
+    total_pages: Optional[int] = None
+    has_next_page: Optional[bool] = None
+    has_previous_page: Optional[bool] = None
+
+    model_config = ConfigDict(from_attributes=True)
