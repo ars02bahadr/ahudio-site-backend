@@ -2,33 +2,41 @@
 import asyncio
 import sys
 import hashlib
+import hmac
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 # JWT ve Password Hashing Ayarları
 SECRET_KEY = "your-secret-key-change-this-in-production-123456789"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+HASH_SALT = "ahudio-salt-change-in-production-2024"
 
 
-def verify_password(plain_password, hashed_password):
-    # Uzun şifreleri SHA256 ile hash'leyip 72 byte limitine uy
-    if len(plain_password.encode('utf-8')) > 72:
-        plain_password = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Şifreyi PBKDF2 ile doğrula"""
+    password_hash = hashlib.pbkdf2_hmac(
+        'sha256',
+        plain_password.encode('utf-8'),
+        HASH_SALT.encode('utf-8'),
+        100000
+    )
+    return hmac.compare_digest(password_hash.hex(), hashed_password)
 
 
-def get_password_hash(password):
-    # Uzun şifreleri SHA256 ile hash'leyip 72 byte limitine uy
-    if len(password.encode('utf-8')) > 72:
-        password = hashlib.sha256(password.encode('utf-8')).hexdigest()
-    return pwd_context.hash(password)
+def get_password_hash(password: str) -> str:
+    """Şifreyi PBKDF2 ile hashle"""
+    password_hash = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        HASH_SALT.encode('utf-8'),
+        100000
+    )
+    return password_hash.hex()
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
