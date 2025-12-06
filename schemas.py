@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 from datetime import datetime
-from models import BusinessType
+from models import BusinessType, VoiceType, BehaviorType
 
 class MessageCreate(BaseModel):
     name: str
@@ -34,6 +34,57 @@ class LoginSuperAdmin(BaseModel):
     username: str
     access_token: str
     token_type: str = "bearer"
+    model_config = ConfigDict(from_attributes=True)
+
+
+# About Schemas
+class AboutBase(BaseModel):
+    description: str
+    vision: str
+    mission: str
+
+class AboutUpdate(AboutBase):
+    pass
+
+class AboutRead(AboutBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Email Address Schemas
+class EmailAddressCreate(BaseModel):
+    value: str
+
+class EmailAddressRead(EmailAddressCreate):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Phone Number Schemas
+class PhoneNumberCreate(BaseModel):
+    value: str
+
+class PhoneNumberRead(PhoneNumberCreate):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Property Schemas
+class PropertyBase(BaseModel):
+    voice_type: VoiceType
+    behavior_type: BehaviorType
+    opening_message: str
+    closing_message: str
+    prompt: Optional[str] = ""
+
+class PropertyCreate(PropertyBase):
+    pass
+
+class PropertyUpdate(PropertyBase):
+    pass
+
+class PropertyRead(PropertyBase):
+    id: int
     model_config = ConfigDict(from_attributes=True)
 
 
