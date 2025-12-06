@@ -344,15 +344,15 @@ async def upload_prompt_file(
 ):
     """TXT dosyası yükleyerek prompt alanını güncelle - token gerekli"""
     # Dosya uzantısı kontrolü
-    if not file.filename.endswith('.txt'):
-        raise HTTPException(status_code=400, detail="Sadece .txt dosyaları kabul edilir")
+    if not file.filename.endswith('.txt') and not file.filename.endswith('.docx') and not file.filename.endswith('.doc'):
+        raise HTTPException(status_code=400, detail="Sadece .txt, .docx ve .doc dosyaları kabul edilir")
     
-    # Dosya boyutu kontrolü (20MB = 20 * 1024 * 1024 bytes)
+    # Dosya boyutu kontrolü (1MB = 1 * 1024 * 1024 bytes)
     content = await file.read()
     file_size_mb = len(content) / (1024 * 1024)
     
-    if file_size_mb > 20:
-        raise HTTPException(status_code=400, detail=f"Dosya boyutu {file_size_mb:.2f}MB. Maksimum 20MB olmalıdır")
+    if file_size_mb > 1:
+        raise HTTPException(status_code=400, detail=f"Dosya boyutu {file_size_mb:.2f}MB. Maksimum 1MB olmalıdır")
     
     # Dosya içeriğini oku ve decode et
     try:
