@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 from datetime import datetime
-from models import BusinessType, VoiceType, BehaviorType
+from models import BusinessType
 
 class MessageCreate(BaseModel):
     name: str
@@ -62,29 +62,77 @@ class EmailAddressRead(EmailAddressCreate):
 
 # Phone Number Schemas
 class PhoneNumberCreate(BaseModel):
-    value: str
+    value: str  # Telefon numarası
+    name: Optional[str] = None  # İsim (opsiyonel)
 
-class PhoneNumberRead(PhoneNumberCreate):
+class PhoneNumberUpdate(BaseModel):
+    value: Optional[str] = None
+    name: Optional[str] = None
+
+class PhoneNumberRead(BaseModel):
     id: int
+    vapi_id: str
+    value: str
+    name: Optional[str] = None
+    assistant_id: Optional[str] = None
+    status: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    created_at_local: datetime
+    updated_at_local: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
 
-# Property Schemas
-class PropertyBase(BaseModel):
-    voice_type: VoiceType
-    behavior_type: BehaviorType
-    opening_message: str
-    closing_message: str
-    prompt: Optional[str] = ""
+# Voice Schemas
+class VoiceBase(BaseModel):
+    model: Optional[str] = None
+    voice_id: Optional[str] = None
+    provider: Optional[str] = None
+    stability: Optional[str] = None
+    similarity_boost: Optional[str] = None
 
-class PropertyCreate(PropertyBase):
-    pass
+class VoiceCreate(VoiceBase):
+    assistant_id: int
 
-class PropertyUpdate(PropertyBase):
-    pass
-
-class PropertyRead(PropertyBase):
+class VoiceRead(VoiceBase):
     id: int
+    assistant_id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Assistant Schemas
+class AssistantBase(BaseModel):
+    name: str
+    first_message: Optional[str] = None
+    voicemail_message: Optional[str] = None
+    end_call_message: Optional[str] = None
+
+class AssistantCreate(AssistantBase):
+    voice_type: Optional[str] = None  # voice_id değeri - Backend VAPI'den otomatik doldurur
+    behavior_type: Optional[str] = None  # model değeri (örn: "gpt-4o-mini") - Backend VAPI'den otomatik doldurur
+
+class AssistantUpdate(BaseModel):
+    name: Optional[str] = None
+    first_message: Optional[str] = None
+    voicemail_message: Optional[str] = None
+    end_call_message: Optional[str] = None
+    voice_type: Optional[str] = None
+    behavior_type: Optional[str] = None
+
+class AssistantRead(AssistantBase):
+    id: int
+    vapi_id: str
+    org_id: Optional[str] = None
+    voice_type: Optional[str] = None
+    behavior_type: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    created_at_local: datetime
+    updated_at_local: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class AssistantWithVoice(AssistantRead):
+    voice: Optional[VoiceRead] = None
     model_config = ConfigDict(from_attributes=True)
 
 

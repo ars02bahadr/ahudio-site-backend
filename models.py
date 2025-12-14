@@ -11,19 +11,6 @@ class BusinessType(enum.Enum):
     DIGER = "diger"
 
 
-class VoiceType(enum.Enum):
-    SES_1 = "ses-1"
-    SES_2 = "ses-2"
-    SES_3 = "ses-3"
-    SES_4 = "ses-4"
-    SES_5 = "ses-5"
-
-
-class BehaviorType(enum.Enum):
-    DAVRANIS_1 = "davranis-1"
-    DAVRANIS_2 = "davranis-2"
-    DAVRANIS_3 = "davranis-3"
-    DAVRANIS_4 = "davranis-4"
 
 
 class Message(Base):
@@ -71,15 +58,57 @@ class PhoneNumber(Base):
     __tablename__ = "phone_numbers"
 
     id = Column(Integer, primary_key=True, index=True)
-    value = Column(String(50), nullable=False)
+    vapi_id = Column(String(200), unique=True, nullable=False, index=True)  # VAPI'den gelen id
+    org_id = Column(String(200), nullable=True)
+    assistant_id = Column(String(200), nullable=True)  # VAPI assistant ID
+    value = Column(String(50), nullable=False)  # Telefon numarası
+    name = Column(String(200), nullable=True)
+    credential_id = Column(String(200), nullable=True)
+    provider = Column(String(50), nullable=True)
+    number_e164_check_enabled = Column(String(10), nullable=True, default="false")
+    status = Column(String(50), nullable=True)
+    provider_resource_id = Column(String(200), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+    created_at_local = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at_local = Column(DateTime(timezone=True), onupdate=func.now())
 
 
-class Property(Base):
-    __tablename__ = "properties"
+class Voice(Base):
+    __tablename__ = "voices"
 
     id = Column(Integer, primary_key=True, index=True)
-    voice_type = Column(SAEnum(VoiceType), nullable=False, default=VoiceType.SES_1)
-    behavior_type = Column(SAEnum(BehaviorType), nullable=False, default=BehaviorType.DAVRANIS_1)
-    opening_message = Column(Text, nullable=False, default="Hoş geldiniz")
-    closing_message = Column(Text, nullable=False, default="İyi günler")
-    prompt = Column(Text, nullable=True, default="")
+    assistant_id = Column(Integer, nullable=False, index=True)
+    model = Column(String(100), nullable=True)
+    voice_id = Column(String(200), nullable=True)
+    provider = Column(String(50), nullable=True)
+    stability = Column(String(50), nullable=True)
+    similarity_boost = Column(String(50), nullable=True)
+
+
+class Assistant(Base):
+    __tablename__ = "assistants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vapi_id = Column(String(200), unique=True, nullable=False, index=True)  # VAPI'den gelen id
+    org_id = Column(String(200), nullable=True)
+    name = Column(String(200), nullable=False)
+    voice_type = Column(String(50), nullable=True)
+    behavior_type = Column(String(50), nullable=True)
+    first_message = Column(Text, nullable=True)
+    voicemail_message = Column(Text, nullable=True)
+    end_call_message = Column(Text, nullable=True)
+    model_data = Column(Text, nullable=True)  # JSON olarak saklanacak
+    transcriber_data = Column(Text, nullable=True)  # JSON olarak saklanacak
+    silence_timeout_seconds = Column(Integer, nullable=True)
+    client_messages = Column(Text, nullable=True)  # JSON array olarak saklanacak
+    server_messages = Column(Text, nullable=True)  # JSON array olarak saklanacak
+    end_call_phrases = Column(Text, nullable=True)  # JSON array olarak saklanacak
+    hipaa_enabled = Column(String(10), nullable=True, default="false")
+    background_denoising_enabled = Column(String(10), nullable=True, default="false")
+    start_speaking_plan = Column(Text, nullable=True)  # JSON olarak saklanacak
+    is_server_url_secret_set = Column(String(10), nullable=True, default="false")
+    created_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+    created_at_local = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at_local = Column(DateTime(timezone=True), onupdate=func.now())
