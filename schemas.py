@@ -88,8 +88,8 @@ class VoiceBase(BaseModel):
     model: Optional[str] = None
     voice_id: Optional[str] = None
     provider: Optional[str] = None
-    stability: Optional[str] = None
-    similarity_boost: Optional[str] = None
+    stability: Optional[float] = None
+    similarity_boost: Optional[float] = None
 
 class VoiceCreate(VoiceBase):
     assistant_id: int
@@ -98,6 +98,16 @@ class VoiceRead(VoiceBase):
     id: int
     assistant_id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+# Model Schema (VAPI model bilgisi için)
+class ModelRead(BaseModel):
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+    messages: Optional[list] = None  # System message ve diğer mesajlar
+    tool_ids: Optional[list] = None
 
 
 # Assistant Schemas
@@ -123,8 +133,6 @@ class AssistantRead(AssistantBase):
     id: int
     vapi_id: str
     org_id: Optional[str] = None
-    voice_type: Optional[str] = None
-    behavior_type: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     created_at_local: datetime
@@ -133,6 +141,7 @@ class AssistantRead(AssistantBase):
 
 class AssistantWithVoice(AssistantRead):
     voice: Optional[VoiceRead] = None
+    model: Optional[ModelRead] = None
     model_config = ConfigDict(from_attributes=True)
 
 

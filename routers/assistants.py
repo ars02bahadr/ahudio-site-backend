@@ -11,7 +11,7 @@ from services.assistant_service import sync_assistant_from_vapi
 router = APIRouter(prefix="/assistants", tags=["Asistanlar"])
 
 
-@router.get("/", response_model=list[schemas.AssistantRead])
+@router.get("/", response_model=list[schemas.AssistantWithVoice])
 async def get_assistants(db: Session = Depends(get_db)):
     """Tüm asistanları getir - önce VAPI'den çek, sonra veritabanına kaydet"""
     vapi_service = VAPIService()
@@ -25,8 +25,56 @@ async def get_assistants(db: Session = Depends(get_db)):
     for vapi_assistant in vapi_assistants:
         await sync_assistant_from_vapi(vapi_assistant, db)
     
-    # Veritabanından tüm asistanları getir
-    return db.query(models.Assistant).all()
+    # Veritabanından tüm asistanları getir ve voice/model bilgilerini ekle
+    assistants = db.query(models.Assistant).all()
+    result = []
+    for assistant in assistants:
+        voice = db.query(models.Voice).filter(models.Voice.assistant_id == assistant.id).first()
+        
+        # Voice objesini oluştur (stability ve similarity_boost'u float'a çevir)
+        voice_obj = None
+        if voice:
+            voice_obj = schemas.VoiceRead(
+                id=voice.id,
+                assistant_id=voice.assistant_id,
+                model=voice.model,
+                voice_id=voice.voice_id,
+                provider=voice.provider,
+                stability=float(voice.stability) if voice.stability else None,
+                similarity_boost=float(voice.similarity_boost) if voice.similarity_boost else None
+            )
+        
+        # Model bilgisini parse et
+        model_obj = None
+        if assistant.model_data:
+            model_data = json.loads(assistant.model_data)
+            model_obj = schemas.ModelRead(
+                model=model_data.get("model"),
+                provider=model_data.get("provider"),
+                temperature=model_data.get("temperature"),
+                max_tokens=model_data.get("maxTokens"),
+                messages=model_data.get("messages", []),
+                tool_ids=model_data.get("toolIds", [])
+            )
+        
+        result_dict = {
+            "id": assistant.id,
+            "vapi_id": assistant.vapi_id,
+            "org_id": assistant.org_id,
+            "name": assistant.name,
+            "first_message": assistant.first_message,
+            "voicemail_message": assistant.voicemail_message,
+            "end_call_message": assistant.end_call_message,
+            "created_at": assistant.created_at,
+            "updated_at": assistant.updated_at,
+            "created_at_local": assistant.created_at_local,
+            "updated_at_local": assistant.updated_at_local,
+            "voice": voice_obj,
+            "model": model_obj
+        }
+        result.append(schemas.AssistantWithVoice(**result_dict))
+    
+    return result
 
 
 @router.get("/{assistant_id}", response_model=schemas.AssistantWithVoice)
@@ -49,14 +97,38 @@ async def get_assistant(assistant_id: int, db: Session = Depends(get_db)):
     
     voice = db.query(models.Voice).filter(models.Voice.assistant_id == assistant_id).first()
     
+    # Voice objesini oluştur (stability ve similarity_boost'u float'a çevir)
+    voice_obj = None
+    if voice:
+        voice_obj = schemas.VoiceRead(
+            id=voice.id,
+            assistant_id=voice.assistant_id,
+            model=voice.model,
+            voice_id=voice.voice_id,
+            provider=voice.provider,
+            stability=float(voice.stability) if voice.stability else None,
+            similarity_boost=float(voice.similarity_boost) if voice.similarity_boost else None
+        )
+    
+    # Model bilgisini parse et
+    model_obj = None
+    if assistant.model_data:
+        model_data = json.loads(assistant.model_data)
+        model_obj = schemas.ModelRead(
+            model=model_data.get("model"),
+            provider=model_data.get("provider"),
+            temperature=model_data.get("temperature"),
+            max_tokens=model_data.get("maxTokens"),
+            messages=model_data.get("messages", []),
+            tool_ids=model_data.get("toolIds", [])
+        )
+    
     # AssistantWithVoice oluştur
     result_dict = {
         "id": assistant.id,
         "vapi_id": assistant.vapi_id,
         "org_id": assistant.org_id,
         "name": assistant.name,
-        "voice_type": assistant.voice_type,
-        "behavior_type": assistant.behavior_type,
         "first_message": assistant.first_message,
         "voicemail_message": assistant.voicemail_message,
         "end_call_message": assistant.end_call_message,
@@ -64,7 +136,8 @@ async def get_assistant(assistant_id: int, db: Session = Depends(get_db)):
         "updated_at": assistant.updated_at,
         "created_at_local": assistant.created_at_local,
         "updated_at_local": assistant.updated_at_local,
-        "voice": schemas.VoiceRead.model_validate(voice) if voice else None
+        "voice": voice_obj,
+        "model": model_obj
     }
     return schemas.AssistantWithVoice(**result_dict)
 

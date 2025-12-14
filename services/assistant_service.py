@@ -16,15 +16,24 @@ async def sync_assistant_from_vapi(vapi_assistant: dict, db: Session) -> models.
     
     # Voice bilgilerini çıkar
     voice_data = vapi_assistant.get("voice", {})
+    # Voice type'ı voiceId'den çıkar
+    voice_type = voice_data.get("voiceId") if voice_data else None
+    
+    # Model bilgilerini çıkar
+    model_data = vapi_assistant.get("model", {})
+    # Behavior type'ı model.model'den çıkar
+    behavior_type = model_data.get("model") if model_data else None
     
     if existing:
         # Güncelle
         existing.name = vapi_assistant.get("name", "")
         existing.org_id = vapi_assistant.get("orgId")
+        existing.voice_type = voice_type
+        existing.behavior_type = behavior_type
         existing.first_message = vapi_assistant.get("firstMessage")
         existing.voicemail_message = vapi_assistant.get("voicemailMessage")
         existing.end_call_message = vapi_assistant.get("endCallMessage")
-        existing.model_data = json.dumps(vapi_assistant.get("model", {}))
+        existing.model_data = json.dumps(model_data)
         existing.transcriber_data = json.dumps(vapi_assistant.get("transcriber", {}))
         existing.silence_timeout_seconds = vapi_assistant.get("silenceTimeoutSeconds")
         existing.client_messages = json.dumps(vapi_assistant.get("clientMessages", []))
@@ -45,10 +54,12 @@ async def sync_assistant_from_vapi(vapi_assistant: dict, db: Session) -> models.
             vapi_id=vapi_assistant.get("id"),
             org_id=vapi_assistant.get("orgId"),
             name=vapi_assistant.get("name", ""),
+            voice_type=voice_type,
+            behavior_type=behavior_type,
             first_message=vapi_assistant.get("firstMessage"),
             voicemail_message=vapi_assistant.get("voicemailMessage"),
             end_call_message=vapi_assistant.get("endCallMessage"),
-            model_data=json.dumps(vapi_assistant.get("model", {})),
+            model_data=json.dumps(model_data),
             transcriber_data=json.dumps(vapi_assistant.get("transcriber", {})),
             silence_timeout_seconds=vapi_assistant.get("silenceTimeoutSeconds"),
             client_messages=json.dumps(vapi_assistant.get("clientMessages", [])),

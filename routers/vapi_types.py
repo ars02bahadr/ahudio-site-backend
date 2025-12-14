@@ -7,7 +7,7 @@ router = APIRouter(prefix="/vapi", tags=["VAPI Tipleri"])
 
 @router.get("/voice-types", response_model=List[Dict])
 async def get_voice_types():
-    """VAPI'den ses tiplerini getir"""
+    """VAPI'den ses tiplerini getir (mevcut asistanlardan unique voice'ları çıkarır)"""
     vapi_service = VAPIService()
     
     try:
