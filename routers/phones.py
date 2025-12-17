@@ -59,23 +59,31 @@ async def create_phone(
     vapi_service = VAPIService()
     
     # VAPI'ye gönderilecek veri
+    # VAPI API'si sadece provider ve credentialId bekliyor (VAPI API dokümantasyonuna göre)
+    # number, name, assistantId, value gibi alanlar kabul edilmiyor
     vapi_data = {
-        "number": phone_data.value,
-        "name": phone_data.name
+        "provider": phone_data.provider
     }
+    
+    # credentialId varsa ekle
+    if phone_data.credential_id:
+        vapi_data["credentialId"] = phone_data.credential_id
     
     try:
         vapi_response = await vapi_service.create_phone_number(vapi_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"VAPI'de telefon numarası oluşturulamadı: {str(e)}")
+        # Hata mesajını daha detaylı göster
+        error_detail = str(e)
+        raise HTTPException(status_code=500, detail=f"VAPI'de telefon numarası oluşturulamadı: {error_detail}")
     
     # Veritabanına kaydet
+    # VAPI'den dönen tüm bilgileri veritabanına kaydet
     new_phone = models.PhoneNumber(
         vapi_id=vapi_response.get("id"),
         org_id=vapi_response.get("orgId"),
         assistant_id=vapi_response.get("assistantId"),
-        value=vapi_response.get("number", phone_data.value),
-        name=vapi_response.get("name", phone_data.name),
+        value=vapi_response.get("number") or "",
+        name=vapi_response.get("name"),
         credential_id=vapi_response.get("credentialId"),
         provider=vapi_response.get("provider"),
         number_e164_check_enabled=str(vapi_response.get("numberE164CheckEnabled", False)).lower(),
@@ -105,11 +113,16 @@ async def update_phone(
     vapi_service = VAPIService()
     
     # VAPI'ye gönderilecek veri
+    # VAPI API'si sadece provider ve credentialId güncellemesini kabul eder
     vapi_data = {}
-    if phone_data.value is not None:
-        vapi_data["number"] = phone_data.value
-    if phone_data.name is not None:
-        vapi_data["name"] = phone_data.name
+    if phone_data.provider is not None:
+        vapi_data["provider"] = phone_data.provider
+    if phone_data.credential_id is not None:
+        vapi_data["credentialId"] = phone_data.credential_id
+    
+    # Boş dict kontrolü
+    if not vapi_data:
+        raise HTTPException(status_code=400, detail="Güncellenecek alan belirtilmedi. Sadece provider ve credential_id güncellenebilir.")
     
     try:
         vapi_response = await vapi_service.update_phone_number(phone.vapi_id, vapi_data)
@@ -117,10 +130,16 @@ async def update_phone(
         raise HTTPException(status_code=500, detail=f"VAPI'de telefon numarası güncellenemedi: {str(e)}")
     
     # Veritabanını güncelle
-    if phone_data.value is not None:
-        phone.value = vapi_response.get("number", phone_data.value)
-    if phone_data.name is not None:
-        phone.name = vapi_response.get("name", phone_data.name)
+    # VAPI'den dönen tüm bilgileri veritabanına kaydet
+    if phone_data.provider is not None:
+        phone.provider = vapi_response.get("provider", phone_data.provider)
+    if phone_data.credential_id is not None:
+        phone.credential_id = vapi_response.get("credentialId", phone_data.credential_id)
+    
+    # VAPI'den dönen diğer alanları da güncelle
+    phone.value = vapi_response.get("number", phone.value)
+    phone.name = vapi_response.get("name", phone.name)
+    phone.assistant_id = vapi_response.get("assistantId", phone.assistant_id)
     
     phone.updated_at = vapi_service.parse_datetime(vapi_response.get("updatedAt"))
     

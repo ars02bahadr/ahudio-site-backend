@@ -115,7 +115,14 @@ class VAPIService:
                 headers=self.headers,
                 json=data
             )
-            response.raise_for_status()
+            if response.status_code >= 400:
+                error_detail = f"{response.status_code} {response.reason_phrase}"
+                try:
+                    error_body = response.json()
+                    error_detail = f"{error_detail}\nResponse body: {error_body}"
+                except:
+                    error_detail = f"{error_detail}\nResponse text: {response.text}"
+                raise Exception(error_detail)
             return response.json()
     
     async def update_phone_number(self, phone_id: str, data: Dict) -> Dict:
@@ -126,7 +133,14 @@ class VAPIService:
                 headers=self.headers,
                 json=data
             )
-            response.raise_for_status()
+            if response.status_code >= 400:
+                error_detail = f"{response.status_code} {response.reason_phrase}"
+                try:
+                    error_body = response.json()
+                    error_detail = f"{error_detail}\nResponse body: {error_body}"
+                except:
+                    error_detail = f"{error_detail}\nResponse text: {response.text}"
+                raise Exception(error_detail)
             return response.json()
     
     async def delete_phone_number(self, phone_id: str) -> None:

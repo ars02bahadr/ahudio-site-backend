@@ -62,12 +62,15 @@ class EmailAddressRead(EmailAddressCreate):
 
 # Phone Number Schemas
 class PhoneNumberCreate(BaseModel):
-    value: str  # Telefon numarası
-    name: Optional[str] = None  # İsim (opsiyonel)
+    provider: str  # Provider (twilio, vonage, vapi, telnyx, byo-phone-number)
+    credential_id: Optional[str] = None  # Credential ID (provider için gerekli olabilir)
+
 
 class PhoneNumberUpdate(BaseModel):
-    value: Optional[str] = None
-    name: Optional[str] = None
+    provider: Optional[str] = None
+    credential_id: Optional[str] = None
+    
+
 
 class PhoneNumberRead(BaseModel):
     id: int
