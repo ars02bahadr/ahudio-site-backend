@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import assistants, vapi_types, contacts, auth, about, emails, phones
+from routers import assistants, vapi_types, contacts, auth, about, emails, phones, stats
 import uvicorn
 
 
@@ -33,6 +33,7 @@ app.include_router(auth.router)
 app.include_router(about.router)
 app.include_router(emails.router)
 app.include_router(phones.router)
+app.include_router(stats.router)
 
 
 if __name__ == "__main__":

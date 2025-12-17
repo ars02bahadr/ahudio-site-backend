@@ -139,6 +139,24 @@ class VAPIService:
             response.raise_for_status()
             return None
     
+    # Call Methods
+    async def get_calls(self) -> List[Dict]:
+        """VAPI'den tüm çağrıları getir"""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}/call",
+                headers=self.headers
+            )
+            if response.status_code >= 400:
+                error_detail = f"{response.status_code} {response.reason_phrase}"
+                try:
+                    error_body = response.json()
+                    error_detail = f"{error_detail}\n{error_body}"
+                except:
+                    error_detail = f"{error_detail}\nResponse text: {response.text}"
+                raise Exception(error_detail)
+            return response.json()
+    
     @staticmethod
     def parse_datetime(dt_str: Optional[str]) -> Optional[datetime]:
         """ISO formatındaki datetime string'ini parse et"""

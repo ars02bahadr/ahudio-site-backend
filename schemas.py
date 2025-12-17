@@ -145,3 +145,32 @@ class AssistantWithVoice(AssistantRead):
     model_config = ConfigDict(from_attributes=True)
 
 
+# Dashboard Statistics Schemas
+class BasicStats(BaseModel):
+    """Temel istatistikler"""
+    total_calls: int
+    successful_calls: int
+    failed_calls: int
+    active_calls: int
+    total_cost: float  # $ formatında
+
+class DetailedStats(BaseModel):
+    """Detaylı metrikler"""
+    average_call_duration: Optional[str] = None  # "MM:SS" formatında
+    today_calls: int
+    week_calls: int
+    success_rate: float  # % formatında
+
+class CallTypeStats(BaseModel):
+    """Çağrı türleri istatistikleri"""
+    web_call: int
+    outbound_phone: int
+    inbound_phone: int
+
+class DashboardStats(BaseModel):
+    """Dashboard istatistikleri"""
+    basic_stats: BasicStats
+    detailed_stats: DetailedStats
+    call_type_stats: CallTypeStats
+
+
