@@ -120,6 +120,7 @@ class AssistantBase(BaseModel):
 class AssistantCreate(AssistantBase):
     voice_type: Optional[str] = None  # voice_id değeri - Backend VAPI'den otomatik doldurur
     behavior_type: Optional[str] = None  # model değeri (örn: "gpt-4o-mini") - Backend VAPI'den otomatik doldurur
+    system_prompt: Optional[str] = None  # System message content - model.messages[0].content
 
 class AssistantUpdate(BaseModel):
     name: Optional[str] = None
@@ -128,6 +129,7 @@ class AssistantUpdate(BaseModel):
     end_call_message: Optional[str] = None
     voice_type: Optional[str] = None
     behavior_type: Optional[str] = None
+    system_prompt: Optional[str] = None  # System message content - model.messages[0].content
 
 class AssistantRead(AssistantBase):
     id: int

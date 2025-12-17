@@ -190,6 +190,24 @@ async def create_assistant(
             model_data = assistant.get("model", {})
             if model_data and model_data.get("model") == assistant_data.behavior_type:
                 messages = model_data.get("messages", [])
+                
+                # System prompt varsa, messages array'ini güncelle
+                if assistant_data.system_prompt is not None:
+                    # System message'ı bul veya oluştur
+                    system_message_found = False
+                    for i, msg in enumerate(messages):
+                        if msg.get("role") == "system":
+                            messages[i] = {
+                                "role": "system",
+                                "content": assistant_data.system_prompt
+                            }
+                            system_message_found = True
+                            break
+                    
+                    # System message yoksa ekle
+                    if not system_message_found:
+                        messages = [{"role": "system", "content": assistant_data.system_prompt}] + messages
+                
                 vapi_data["model"] = {
                     "model": model_data.get("model"),
                     "provider": model_data.get("provider"),
@@ -200,10 +218,17 @@ async def create_assistant(
                 model_found = True
                 break
         if not model_found:
-            # Sadece model ile gönder
-            vapi_data["model"] = {
-                "model": assistant_data.behavior_type
-            }
+            # Model bulunamadı, system_prompt varsa messages ile birlikte gönder
+            if assistant_data.system_prompt is not None:
+                vapi_data["model"] = {
+                    "model": assistant_data.behavior_type,
+                    "messages": [{"role": "system", "content": assistant_data.system_prompt}]
+                }
+            else:
+                # Sadece model ile gönder
+                vapi_data["model"] = {
+                    "model": assistant_data.behavior_type
+                }
     
     # Transcriber bilgilerini otomatik doldur (mevcut asistanlardan ilk transcriber'ı kullan)
     transcriber_found = False
@@ -335,39 +360,109 @@ async def update_assistant(
                 "similarityBoost": current_voice.get("similarityBoost")
             }
     
-    # Model bilgilerini güncelle (behavior_type varsa)
-    if assistant_data.behavior_type is not None:
-        model_found = False
-        for vapi_assistant in vapi_assistants:
-            model_data = vapi_assistant.get("model", {})
-            if model_data and model_data.get("model") == assistant_data.behavior_type:
-                messages = model_data.get("messages", [])
+    # Model bilgilerini güncelle (behavior_type veya system_prompt varsa)
+    if assistant_data.behavior_type is not None or assistant_data.system_prompt is not None:
+        # Mevcut model bilgilerini al
+        current_model = current_vapi_assistant.get("model", {})
+        current_messages = current_model.get("messages", [])
+        
+        if assistant_data.behavior_type is not None:
+            model_found = False
+            for vapi_assistant in vapi_assistants:
+                model_data = vapi_assistant.get("model", {})
+                if model_data and model_data.get("model") == assistant_data.behavior_type:
+                    messages = model_data.get("messages", [])
+                    
+                    # System prompt varsa, messages array'ini güncelle
+                    if assistant_data.system_prompt is not None:
+                        # System message'ı bul veya oluştur
+                        system_message_found = False
+                        for i, msg in enumerate(messages):
+                            if msg.get("role") == "system":
+                                messages[i] = {
+                                    "role": "system",
+                                    "content": assistant_data.system_prompt
+                                }
+                                system_message_found = True
+                                break
+                        
+                        # System message yoksa ekle
+                        if not system_message_found:
+                            messages = [{"role": "system", "content": assistant_data.system_prompt}] + messages
+                    
+                    vapi_data["model"] = {
+                        "model": model_data.get("model"),
+                        "provider": model_data.get("provider"),
+                        "temperature": model_data.get("temperature"),
+                        "maxTokens": model_data.get("maxTokens"),
+                        "messages": messages
+                    }
+                    model_found = True
+                    break
+            
+            if not model_found:
+                # Model bulunamadı, mevcut model bilgilerini kullan
+                if not current_model:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Model '{assistant_data.behavior_type}' bulunamadı ve mevcut asistanın model bilgisi yok. Lütfen geçerli bir model adı kullanın."
+                    )
+                
+                # Mevcut model bilgilerini kullan, sadece model adını değiştir
+                provider = current_model.get("provider") or "openai"
+                messages = current_messages.copy()
+                
+                # System prompt varsa, messages array'ini güncelle
+                if assistant_data.system_prompt is not None:
+                    system_message_found = False
+                    for i, msg in enumerate(messages):
+                        if msg.get("role") == "system":
+                            messages[i] = {
+                                "role": "system",
+                                "content": assistant_data.system_prompt
+                            }
+                            system_message_found = True
+                            break
+                    
+                    if not system_message_found:
+                        messages = [{"role": "system", "content": assistant_data.system_prompt}] + messages
+                
                 vapi_data["model"] = {
-                    "model": model_data.get("model"),
-                    "provider": model_data.get("provider"),
-                    "temperature": model_data.get("temperature"),
-                    "maxTokens": model_data.get("maxTokens"),
+                    "model": assistant_data.behavior_type,
+                    "provider": provider,
+                    "temperature": current_model.get("temperature"),
+                    "maxTokens": current_model.get("maxTokens"),
                     "messages": messages
                 }
-                model_found = True
-                break
-        if not model_found:
-            # Mevcut model bilgilerini al, sadece model'i değiştir
-            current_model = current_vapi_assistant.get("model", {})
+        elif assistant_data.system_prompt is not None:
+            # Sadece system_prompt güncelleniyor, model değişmiyor
             if not current_model:
                 raise HTTPException(
-                    status_code=400, 
-                    detail=f"Model '{assistant_data.behavior_type}' bulunamadı ve mevcut asistanın model bilgisi yok. Lütfen geçerli bir model adı kullanın."
+                    status_code=400,
+                    detail="Mevcut asistanın model bilgisi yok. System prompt'u güncellemek için önce model bilgisi olmalı."
                 )
-            # Mevcut model bilgilerini kullan, sadece model adını değiştir
-            # Provider yoksa varsayılan olarak "openai" kullan
-            provider = current_model.get("provider") or "openai"
+            
+            messages = current_messages.copy()
+            # System message'ı bul veya oluştur
+            system_message_found = False
+            for i, msg in enumerate(messages):
+                if msg.get("role") == "system":
+                    messages[i] = {
+                        "role": "system",
+                        "content": assistant_data.system_prompt
+                    }
+                    system_message_found = True
+                    break
+            
+            if not system_message_found:
+                messages = [{"role": "system", "content": assistant_data.system_prompt}] + messages
+            
             vapi_data["model"] = {
-                "model": assistant_data.behavior_type,
-                "provider": provider,
+                "model": current_model.get("model"),
+                "provider": current_model.get("provider"),
                 "temperature": current_model.get("temperature"),
                 "maxTokens": current_model.get("maxTokens"),
-                "messages": current_model.get("messages", [])
+                "messages": messages
             }
     
     # Boş dict kontrolü
