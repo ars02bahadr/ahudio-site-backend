@@ -54,7 +54,26 @@ class VAPIService:
                 headers=self.headers,
                 json=data
             )
-            response.raise_for_status()
+            if response.status_code >= 400:
+                # Daha detaylı hata mesajı için response body'yi ekle
+                error_detail = f"{response.status_code} {response.reason_phrase}"
+                try:
+                    error_body = response.json()
+                    # Model hatası için özel mesaj formatla
+                    if isinstance(error_body, dict) and "message" in error_body:
+                        if isinstance(error_body["message"], list) and len(error_body["message"]) > 0:
+                            message = error_body["message"][0]
+                            if "must be one of" in message:
+                                error_detail = f"{error_detail}\n{message}"
+                            else:
+                                error_detail = f"{error_detail}\n{error_body}"
+                        else:
+                            error_detail = f"{error_detail}\n{error_body}"
+                    else:
+                        error_detail = f"{error_detail}\n{error_body}"
+                except:
+                    error_detail = f"{error_detail}\nResponse text: {response.text}"
+                raise Exception(error_detail)
             return response.json()
     
     async def delete_assistant(self, assistant_id: str) -> None:

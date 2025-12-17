@@ -289,10 +289,16 @@ async def update_assistant(
     
     vapi_service = VAPIService()
     
+    # Önce VAPI'den mevcut asistanı çek
+    try:
+        current_vapi_assistant = await vapi_service.get_assistant(assistant.vapi_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"VAPI'den mevcut asistan bilgisi alınamadı: {str(e)}")
+    
     # VAPI'den mevcut asistanları çek (config bilgileri için)
     vapi_assistants = await vapi_service.get_assistants()
     
-    # VAPI'ye gönderilecek veri
+    # VAPI'ye gönderilecek veri - mevcut asistanın bilgilerini kullan
     vapi_data = {}
     if assistant_data.name is not None:
         vapi_data["name"] = assistant_data.name
@@ -303,7 +309,7 @@ async def update_assistant(
     if assistant_data.end_call_message is not None:
         vapi_data["endCallMessage"] = assistant_data.end_call_message
     
-    # Voice bilgilerini otomatik doldur (voice_type varsa)
+    # Voice bilgilerini güncelle (voice_type varsa)
     if assistant_data.voice_type is not None:
         voice_found = False
         for vapi_assistant in vapi_assistants:
@@ -319,9 +325,17 @@ async def update_assistant(
                 voice_found = True
                 break
         if not voice_found:
-            vapi_data["voice"] = {"voiceId": assistant_data.voice_type}
+            # Mevcut voice bilgilerini al, sadece voiceId'yi değiştir
+            current_voice = current_vapi_assistant.get("voice", {})
+            vapi_data["voice"] = {
+                "voiceId": assistant_data.voice_type,
+                "model": current_voice.get("model"),
+                "provider": current_voice.get("provider"),
+                "stability": current_voice.get("stability"),
+                "similarityBoost": current_voice.get("similarityBoost")
+            }
     
-    # Model bilgilerini otomatik doldur (behavior_type varsa)
+    # Model bilgilerini güncelle (behavior_type varsa)
     if assistant_data.behavior_type is not None:
         model_found = False
         for vapi_assistant in vapi_assistants:
@@ -338,12 +352,40 @@ async def update_assistant(
                 model_found = True
                 break
         if not model_found:
-            vapi_data["model"] = {"model": assistant_data.behavior_type}
+            # Mevcut model bilgilerini al, sadece model'i değiştir
+            current_model = current_vapi_assistant.get("model", {})
+            if not current_model:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Model '{assistant_data.behavior_type}' bulunamadı ve mevcut asistanın model bilgisi yok. Lütfen geçerli bir model adı kullanın."
+                )
+            # Mevcut model bilgilerini kullan, sadece model adını değiştir
+            # Provider yoksa varsayılan olarak "openai" kullan
+            provider = current_model.get("provider") or "openai"
+            vapi_data["model"] = {
+                "model": assistant_data.behavior_type,
+                "provider": provider,
+                "temperature": current_model.get("temperature"),
+                "maxTokens": current_model.get("maxTokens"),
+                "messages": current_model.get("messages", [])
+            }
+    
+    # Boş dict kontrolü
+    if not vapi_data:
+        raise HTTPException(status_code=400, detail="Güncellenecek alan belirtilmedi")
     
     try:
         vapi_response = await vapi_service.update_assistant(assistant.vapi_id, vapi_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"VAPI'de asistan güncellenemedi: {str(e)}")
+        # Daha detaylı hata mesajı için response body'yi de göster
+        error_detail = str(e)
+        if hasattr(e, 'response') and hasattr(e.response, 'text'):
+            try:
+                error_body = e.response.text
+                error_detail = f"{error_detail}\nResponse: {error_body}"
+            except:
+                pass
+        raise HTTPException(status_code=500, detail=f"VAPI'de asistan güncellenemedi: {error_detail}")
     
     # Veritabanını güncelle
     if assistant_data.name is not None:
