@@ -9,8 +9,11 @@ router = APIRouter(prefix="/about", tags=["Hakkında"])
 
 
 @router.get("/", response_model=schemas.AboutRead)
-def get_about(db: Session = Depends(get_db)):
-    """About bilgisi - ilk kaydı getirir, yoksa default değerlerle oluşturur"""
+def get_about(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(verify_token)
+):
+    """About bilgisi - token gerekli. Public erişim için /public/about kullanın."""
     about = db.query(models.About).first()
     if not about:
         # Default değerlerle oluştur

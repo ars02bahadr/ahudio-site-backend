@@ -12,8 +12,11 @@ router = APIRouter(prefix="/assistants", tags=["Asistanlar"])
 
 
 @router.get("/", response_model=list[schemas.AssistantWithVoice])
-async def get_assistants(db: Session = Depends(get_db)):
-    """Tüm asistanları getir - önce VAPI'den çek, sonra veritabanına kaydet"""
+async def get_assistants(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(verify_token)
+):
+    """Tüm asistanları getir - token gerekli"""
     vapi_service = VAPIService()
     
     try:
@@ -78,8 +81,12 @@ async def get_assistants(db: Session = Depends(get_db)):
 
 
 @router.get("/{assistant_id}", response_model=schemas.AssistantWithVoice)
-async def get_assistant(assistant_id: int, db: Session = Depends(get_db)):
-    """Belirli bir asistanı getir - önce VAPI'den çek, sonra veritabanına kaydet"""
+async def get_assistant(
+    assistant_id: int,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(verify_token)
+):
+    """Belirli bir asistanı getir - token gerekli"""
     assistant = db.query(models.Assistant).filter(models.Assistant.id == assistant_id).first()
     if not assistant:
         raise HTTPException(status_code=404, detail="Asistan bulunamadı")

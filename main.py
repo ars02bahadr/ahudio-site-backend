@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from database import engine, Base
-from routers import assistants, vapi_types, contacts, auth, about, emails, phones, stats
+from routers import assistants, vapi_types, contacts, auth, about, emails, phones, stats, dashboard, public
 import uvicorn
 
 
@@ -34,6 +35,14 @@ app.include_router(about.router)
 app.include_router(emails.router)
 app.include_router(phones.router)
 app.include_router(stats.router)
+app.include_router(dashboard.router)  # Yeni: Dashboard router
+app.include_router(public.router)  # Yeni: Public router (hassas bilgiler gizli)
+
+# Static files - ses preview dosyaları için
+import os
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 if __name__ == "__main__":

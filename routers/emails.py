@@ -9,14 +9,21 @@ router = APIRouter(prefix="/emails", tags=["E-posta Adresleri"])
 
 
 @router.get("/", response_model=list[schemas.EmailAddressRead])
-def get_all_emails(db: Session = Depends(get_db)):
-    """Tüm email adreslerini getir"""
+def get_all_emails(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(verify_token)
+):
+    """Tüm email adreslerini getir - token gerekli"""
     return db.query(models.EmailAddress).all()
 
 
 @router.get("/{email_id}", response_model=schemas.EmailAddressRead)
-def get_email(email_id: int, db: Session = Depends(get_db)):
-    """Belirli bir email adresini getir"""
+def get_email(
+    email_id: int,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(verify_token)
+):
+    """Belirli bir email adresini getir - token gerekli"""
     email = db.query(models.EmailAddress).filter(models.EmailAddress.id == email_id).first()
     if not email:
         raise HTTPException(status_code=404, detail="Email adresi bulunamadı")

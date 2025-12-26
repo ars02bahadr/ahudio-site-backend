@@ -112,3 +112,7 @@ class Assistant(Base):
     updated_at = Column(DateTime(timezone=True), nullable=True)
     created_at_local = Column(DateTime(timezone=True), server_default=func.now())
     updated_at_local = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Dashboard Ayarları - Davranış Parametreleri
+    humor = Column(Integer, nullable=True, default=30)  # 0-100 arası, konuşma tarzı
+    goal_focus = Column(Integer, nullable=True, default=50)  # 0-100 arası, ikna seviyesi

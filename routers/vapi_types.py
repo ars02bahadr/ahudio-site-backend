@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from decode import verify_token
 from services.vapi_service import VAPIService
 from typing import List, Dict
 
@@ -6,8 +7,10 @@ router = APIRouter(prefix="/vapi", tags=["VAPI Tipleri"])
 
 
 @router.get("/voice-types", response_model=List[Dict])
-async def get_voice_types():
-    """VAPI'den ses tiplerini getir (mevcut asistanlardan unique voice'ları çıkarır)"""
+async def get_voice_types(
+    current_user: str = Depends(verify_token)
+):
+    """VAPI'den ses tiplerini getir - token gerekli"""
     vapi_service = VAPIService()
     
     try:
@@ -36,8 +39,10 @@ async def get_voice_types():
 
 
 @router.get("/behavior-types", response_model=List[Dict])
-async def get_behavior_types():
-    """VAPI'den davranış tiplerini getir (model bilgilerinden)"""
+async def get_behavior_types(
+    current_user: str = Depends(verify_token)
+):
+    """VAPI'den davranış tiplerini getir - token gerekli"""
     vapi_service = VAPIService()
     
     try:

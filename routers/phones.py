@@ -11,8 +11,11 @@ router = APIRouter(prefix="/phones", tags=["Telefon Numaraları"])
 
 
 @router.get("/", response_model=list[schemas.PhoneNumberRead])
-async def get_all_phones(db: Session = Depends(get_db)):
-    """Tüm telefon numaralarını getir - önce VAPI'den çek, sonra veritabanına kaydet"""
+async def get_all_phones(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(verify_token)
+):
+    """Tüm telefon numaralarını getir - token gerekli"""
     vapi_service = VAPIService()
     
     try:
@@ -29,8 +32,12 @@ async def get_all_phones(db: Session = Depends(get_db)):
 
 
 @router.get("/{phone_id}", response_model=schemas.PhoneNumberRead)
-async def get_phone(phone_id: int, db: Session = Depends(get_db)):
-    """Belirli bir telefon numarasını getir - önce VAPI'den çek, sonra veritabanına kaydet"""
+async def get_phone(
+    phone_id: int,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(verify_token)
+):
+    """Belirli bir telefon numarasını getir - token gerekli"""
     phone = db.query(models.PhoneNumber).filter(models.PhoneNumber.id == phone_id).first()
     if not phone:
         raise HTTPException(status_code=404, detail="Telefon numarası bulunamadı")

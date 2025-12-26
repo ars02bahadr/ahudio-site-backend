@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from decode import verify_token
 from services.vapi_service import VAPIService
 from schemas import DashboardStats, BasicStats, DetailedStats, CallTypeStats
 from datetime import datetime, timedelta, timezone
@@ -139,8 +140,10 @@ def calculate_call_type_stats(calls: List[Dict]) -> CallTypeStats:
 
 
 @router.get("/dashboard", response_model=DashboardStats)
-async def get_dashboard_stats():
-    """Dashboard istatistiklerini getir"""
+async def get_dashboard_stats(
+    current_user: str = Depends(verify_token)
+):
+    """Dashboard istatistiklerini getir - token gerekli"""
     vapi_service = VAPIService()
     
     try:
